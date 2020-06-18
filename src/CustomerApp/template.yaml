@@ -111,10 +111,10 @@ Resources:
       VpcId:
         Ref: LAMVPC
       SecurityGroupIngress:
-      - IpProtocol: -1
-        FromPort: -1
-        ToPort: -1
-        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 10.0.0.0/16
   KMSEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
     DependsOn: LAMVPC
