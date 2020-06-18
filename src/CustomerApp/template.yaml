@@ -107,7 +107,7 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupName: CustomerOrderSG
-      GroupDescription: Allow Custom orders lambda to talk to DynamoDB
+      GroupDescription: Allow Custom orders lambda to talk to DynamoDB, but restrict inbound communications
       VpcId:
         Ref: LAMVPC
       SecurityGroupIngress:
