@@ -107,7 +107,7 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupName: CustomerOrderSG
-      GroupDescription: Allow Custom orders lambda access to AWS resources, but restrict inbound communications
+      GroupDescription: Allow Custom orders lambda to access AWS resources, but restrict inbound communications
       VpcId:
         Ref: LAMVPC
       SecurityGroupIngress:
