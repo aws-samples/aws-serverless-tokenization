@@ -24,7 +24,7 @@ def encrypt_item (plaintext_item,table_name):
         attribute_actions=actions
     )
     
-    print (plaintext_item)
+    #print (plaintext_item)
     response = encrypted_table.put_item(Item=plaintext_item)
 
     print(response)
