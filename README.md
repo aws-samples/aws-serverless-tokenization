@@ -62,7 +62,7 @@ make_bucket: <unique-s3-bucket-name>
  
  ```bash
  git init
- git clone https://github.com/anujag24/lambda-layer-tokenization.git
+ git clone https://github.com/aws-samples/aws-serverless-tokenization
  ```
  
  Once the git repository is cloned, check the directories on the Cloud9 environment. The output will look like the following structure:
