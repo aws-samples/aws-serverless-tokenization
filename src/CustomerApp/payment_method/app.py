@@ -43,8 +43,6 @@ def lambda_handler(event, context):
     if (event['httpMethod'] == 'POST' and event['resource'] == '/paybill'):
             table_name = os.environ['EncryptionTableName']
             body = json.loads(event['body'])
-            #credit_card_token = hash_gen.get_uuid()
-            #print ("printing token value:", credit_card_token)
             ACCOUNT_ID = context.invoked_function_arn.split(":")[4]
             ## Fetch Hash Key from Customer Order Table
             client = boto3.resource('dynamodb')
