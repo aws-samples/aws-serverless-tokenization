@@ -240,6 +240,7 @@ Let’s build the Serveless application which contains API gateway for API manag
 
 ```bash
 sam build --use-container --parameter-overrides layerarn=<LayerVersionArn>
+```
 
 After the build is successful, the output will look like 
 
