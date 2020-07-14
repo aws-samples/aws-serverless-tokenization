@@ -129,7 +129,7 @@ Here, in Step 4, the CloudFormation stack created customer managed KMS key and g
 **Step 5.1** Go to tokenizer directory 
 
 ```bash
-cd aws-serverless-tokenization/src/tokenizer/
+cd ../../aws-serverless-tokenization/src/tokenizer/
 ```
 
 **Step 5.2** Check the dependent libraries mentioned in `requirements.txt` file
