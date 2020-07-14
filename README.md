@@ -129,7 +129,7 @@ Here, in Step 4, the CloudFormation stack created customer managed KMS key and g
 **Step 5.1** Go to tokenizer directory 
 
 ```bash
-cd ../../aws-serverless-tokenization/src/tokenizer/
+cd ../../../aws-serverless-tokenization/src/tokenizer/
 ```
 
 **Step 5.2** Check the dependent libraries mentioned in `requirements.txt` file
@@ -233,7 +233,7 @@ Let’s build the Serveless application which contains API gateway for API manag
 **Step 6.1** Go to CustomerApp directory which has Serverless Application code and SAM template.
  
  ```bash
- cd aws-serverless-tokenization/src/CustomerApp/
+ cd ../../../aws-serverless-tokenization/src/CustomerApp/
  ```
  
 **Step 6.2** Build SAM template. Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.9)
