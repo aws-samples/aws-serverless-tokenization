@@ -261,7 +261,7 @@ The output will look like
 Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.9), `KMSKeyID` (Step 4.5)  and `DynamoDBArn` (Step 5.9)
 
 ```bash
-sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSKeyID> dynamodbarn=<DynamoDBArn>
+sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSArn> dynamodbarn=<DynamoDBArn>
 ```
 ![app-stack](images/app-stack.png)
 
