@@ -37,7 +37,7 @@ This repository has the following directories:
  **TIP** - It is recommended to save the output values from the steps to some TextEditor for use in later steps.
  
  ## Architecture Diagram
- ![Architecture](images/Tokenization-Architecture.png)
+ ![Architecture](images/Lambda-Layer.png)
  
  ## Step 1: Environment Setup
 This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writing, running and debugging code on the cloud. Complete the Cloud9 Setup in AWS using this [guide](cloud9_setup/README.md)
