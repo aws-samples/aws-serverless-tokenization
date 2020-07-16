@@ -115,6 +115,11 @@ Resources:
         FromPort: 443
         ToPort: 443
         CidrIp: 10.0.0.0/16
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
   KMSEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
     DependsOn: LAMVPC
