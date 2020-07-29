@@ -42,6 +42,8 @@ This repository has the following directories:
  ## Step 1: Environment Setup
 This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writing, running and debugging code on the cloud. Complete the Cloud9 Setup in AWS using this [guide](cloud9_setup/README.md)
  
+*Note* - You will use [AWS Cloud9 console](https://docs.aws.amazon.com/cloud9/latest/user-guide/tour-ide.html#tour-ide-console) to run the commands mentioned in the next steps.
+
  ## Step 2: Create S3 Bucket
  We need [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/Welcome.html) bucket for [AWS Serverless Application Model(SAM)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) to package and deploy serverless resources. AWS SAM is an open source framework for building serverless applications on AWS to build and deploy SAM templates (template.yaml). Replace `unique-s3-bucket-name` with a unique value in the following code to create S3 bucket.
  
