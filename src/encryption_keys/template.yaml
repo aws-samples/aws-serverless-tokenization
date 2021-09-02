@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS Lambda Layer for tokenization of sensitive data
+Description: AWS Lambda Layer for tokenization of sensitive data (uksb-1s7fb4gd2)
 
 Resources:
   CMKey:
