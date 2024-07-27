@@ -238,7 +238,11 @@ $RECYCLE.BIN/
 *.lnk
 
 # Build folder
-
 */build/*
+
+# SAM
+.aws-sam/** */
+build.toml
+packaged.yaml
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode

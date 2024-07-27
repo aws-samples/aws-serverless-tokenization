@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: 'AWS::Serverless-2016-10-31'
-Description: Creating Endpoint for Payment Method (uksb-1s7fb4gd2)
+Description: Creating an Endpoint for Payment Method (uksb-1s7fb4gd2)
 Parameters:
   stage:
     Type: String
@@ -138,7 +138,9 @@ Resources:
     Properties:
       CodeUri: payment_method/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.12
+      Architectures:
+        - arm64
       Role: !GetAtt LambdaExecutionRole.Arn
       MemorySize: 256
       VpcConfig:
@@ -148,6 +150,7 @@ Resources:
           - !Ref LAMSubNet
       Layers:
         - !Sub '${layerarn}'
+      Tracing: Active
       Events:
         PaymentMethod:
           Type: Api
@@ -177,6 +180,7 @@ Resources:
         Authorizers:
           MyCognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
+      TracingEnabled: true
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -187,6 +191,8 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
   KMSAccessPolicy:
     DependsOn: CustomerOrderFunction
     Type: 'AWS::IAM::Policy'

@@ -238,7 +238,10 @@ $RECYCLE.BIN/
 *.lnk
 
 # Build folder
-
 */build/*
+
+# SAM
+**/dynamodb-client/**
+*.zip
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode

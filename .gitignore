@@ -1,0 +1,4 @@
+**/.DS_Store
+**/aws-sam/**
+**/build.toml
+**/packaged.yaml
