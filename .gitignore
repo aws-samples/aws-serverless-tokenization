@@ -1,4 +1,9 @@
 **/.DS_Store
-**/aws-sam/**
+**/.aws-sam/**
+**/build.toml
+**/packaged.yaml
+**/build/**
+**/python/**
+**/dynamodb-client/**
 **/build.toml
 **/packaged.yaml

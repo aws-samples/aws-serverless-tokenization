@@ -143,7 +143,7 @@ cd ../../../aws-serverless-tokenization/src/tokenizer/
 
 **Step 5.2** Run the script to compile and install the dependent libraries in *dynamodb-client/python/* directory. For Lambda Function, we can include `--use container` in `sam build` command to achieve this but for Lambda Layer, we need to download the Lambda docker image to compile dependent libraries for Amazon Linux Image. [More details on this](https://github.com/pyca/cryptography/issues/3051?source=post_page-----f3e228470659----------------------)
 
-
+Make sure Docker is installed and running on your machine.
 Utilizing Buildx allows us to leverage the better performance and cost-efficiency of the AWS Graviton processor architecture. To ensure Docker Buildx is installed run the following command:
 
 ```bash
@@ -209,19 +209,13 @@ The output will look like
                     "ExportName": "TokenizeData", 
                     "OutputKey": "LayerVersionArn", 
                     "OutputValue": "***********"
-                }, 
-                {
-                    "Description": "ARN for DynamoDB Table", 
-                    "OutputKey": "DynamoDBArn", 
-                    "OutputValue": "***********/CreditCardTokenizerTable"
                 }
-
             ]
 ```
 
-Note the *OutputValue* of `LayerVersionArn` and `DynamoDBArn` from the output for later steps.
+Note the *OutputValue* of `LayerVersionArn` from the output for later steps.
 
-Here, in Step 5, the CloudFormation stack created DynamoDB table to store encrypted data as well as Lamda Layer for encrypting/decrypting the sensitive data and generating unique tokens for sensitive data.
+Here, in Step 5, the CloudFormation stack created a  Lamda Layer for encrypting/decrypting the sensitive data and generating unique tokens for sensitive data.
 
 ## Step 6: Create Serverless Application 
 
@@ -255,10 +249,10 @@ The output will look like
 
 **Step 6.4** Similar to Step 4.4, deploy code and resources to AWS using the packaged.yaml. Note the name of the stack is `app-stack`. 
 
-Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.7), `KMSKeyID` (Step 4.5)  and `DynamoDBArn` (Step 5.7)
+Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.7), `KMSKeyID` (Step 4.5)
 
 ```bash
-sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSArn> dynamodbarn=<DynamoDBArn>
+sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSArn>
 ```
 ![app-stack](images/app-stack.png)
 

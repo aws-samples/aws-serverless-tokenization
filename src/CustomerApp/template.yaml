@@ -1,6 +1,7 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: Creating an Endpoint for Payment Method (uksb-1s7fb4gd2)
+
 Parameters:
   stage:
     Type: String
@@ -11,15 +12,13 @@ Parameters:
   kmsid:
     Type: String
     Default: default
-  dynamodbarn:
-    Type: String
-    Default: default
   encryptTableName:
     Type: String
     Default: CreditCardTokenizerTable
   customerTableName:
     Type: String
     Default: CustomerOrderTable
+
 Globals:
   Function:
     Timeout: 10
@@ -28,6 +27,7 @@ Globals:
         EncryptionTableName: !Sub '${encryptTableName}'
         CustomerOrderTableName: !Sub '${customerTableName}'
         KMSKey: !Sub '${kmsid}'
+
 Resources:
   UserPool:
     Type: 'AWS::Cognito::UserPool'
@@ -46,6 +46,7 @@ Resources:
           RequireNumbers: false
           RequireSymbols: false
           RequireUppercase: true
+
   UserPoolAppClient:
     Type: 'AWS::Cognito::UserPoolClient'
     Properties:
@@ -53,6 +54,7 @@ Resources:
       GenerateSecret: false
       ExplicitAuthFlows:
         - USER_PASSWORD_AUTH
+
   LAMVPC:
     Type: 'AWS::EC2::VPC'
     Properties:
@@ -63,6 +65,7 @@ Resources:
       Tags:
         - Key: 'Name'
           Value: 'Tokenization VPC'
+
   LAMSubNet:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -71,6 +74,7 @@ Resources:
         - 'Fn::GetAZs': !Ref 'AWS::Region'
       CidrBlock: 10.0.0.0/24
       VpcId: !Ref LAMVPC
+
   DynamoDBRouteTable:
     Type: 'AWS::EC2::RouteTable'
     Properties:
@@ -79,6 +83,7 @@ Resources:
       Tags:
       - Key: 'Name'
         Value: 'DynamoDB RouteTable'
+
   mySubnetRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -86,23 +91,26 @@ Resources:
         Ref: LAMSubNet
       RouteTableId:
         Ref: DynamoDBRouteTable
+
   DynamoDBEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
-    DependsOn: LAMVPC
     Properties:
-      PolicyDocument: '{
-        "Version":"2012-10-17",
-        "Statement":[{
-          "Effect":"Allow",
-          "Principal": "*",
-          "Action":["dynamodb:BatchGetItem", "dynamodb:BatchWriteItem", "dynamodb:PutItem", "dynamodb:DescribeTable", "dynamodb:DescribeGlobalTable", "dynamodb:DeleteItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:GetRecords"],
-          "Resource":["*"]
-        }]
-      }'
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - "dynamodb:*"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:SourceVpc: !Ref LAMVPC
       RouteTableIds:
         - !Ref DynamoDBRouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
       VpcId: !Ref LAMVPC
+
   CustomerOrderSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -120,9 +128,9 @@ Resources:
         FromPort: 443
         ToPort: 443
         CidrIp: 0.0.0.0/0
+
   KMSEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
-    DependsOn: LAMVPC
     Properties:
       PrivateDnsEnabled: True
       VpcEndpointType: 'Interface'
@@ -132,9 +140,33 @@ Resources:
         - !Ref LAMSubNet
       ServiceName: !Sub com.amazonaws.${AWS::Region}.kms
       VpcId: !Ref LAMVPC
+
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: LambdaVPCAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                Resource: '*'
+
   CustomerOrderFunction:
     Type: 'AWS::Serverless::Function'
-    DependsOn: AllowLambdaInVPCPolicy
     Properties:
       CodeUri: payment_method/
       Handler: app.lambda_handler
@@ -164,8 +196,8 @@ Resources:
             Path: /paybill
             RestApiId: !Ref PaymentMethodApi
             Method: post
+
   PaymentMethodApi:
-    DependsOn: UserPool
     Type: 'AWS::Serverless::Api'
     Properties:
       Name: PaymentMethodApi
@@ -181,20 +213,31 @@ Resources:
           MyCognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
       TracingEnabled: true
-  LambdaExecutionRole:
-    Type: 'AWS::IAM::Role'
+
+  WAFWebACL:
+    Type: 'AWS::WAFv2::WebACL'
     Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      DefaultAction:
+        Allow: {}
+      Scope: REGIONAL
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: PaymentMethodApiWAF
+        SampledRequestsEnabled: true
+      Name: PaymentMethodApiWAF
+      Rules: []
+
+
+  WAFWebACLAssociation:
+    Type: 'AWS::WAFv2::WebACLAssociation'
+    DependsOn: 
+      - PaymentMethodApi
+      - PaymentMethodApiStage
+    Properties:
+      ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${PaymentMethodApi}/stages/${stage}"
+      WebACLArn: !GetAtt WAFWebACL.Arn
+
   KMSAccessPolicy:
-    DependsOn: CustomerOrderFunction
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyName: KMSAccessPolicy
@@ -210,13 +253,13 @@ Resources:
             Resource: !Sub '${kmsid}'
       Roles:
         - !Ref LambdaExecutionRole
+
   DynamoDBAccessPolicy:
-    DependsOn: CustomerOrderFunction
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyName: DynamoDBAccessPolicy
       PolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Action:
@@ -230,12 +273,12 @@ Resources:
               - 'dynamodb:Query'
               - 'dynamodb:GetRecords'
             Resource:
-              - !Sub '${dynamodbarn}'
               - !GetAtt OrderDatabase.Arn
+              - !GetAtt TokenDatabase.Arn
       Roles:
         - !Ref LambdaExecutionRole
+
   CloudWatchLogAccessPolicy:
-    DependsOn: CustomerOrderFunction
     Type: 'AWS::IAM::Policy'
     Properties:
       PolicyName: CloudWatchLogAccessPolicy
@@ -250,21 +293,7 @@ Resources:
             Resource: '*'
       Roles:
         - !Ref LambdaExecutionRole
-  AllowLambdaInVPCPolicy:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyName: AllowLambdaInVPCPolicy
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - 'ec2:CreateNetworkInterface'
-              - 'ec2:DescribeNetworkInterfaces'
-              - 'ec2:DeleteNetworkInterface'
-            Resource: '*'
-      Roles:
-        - !Ref LambdaExecutionRole
+
   OrderDatabase:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -281,26 +310,54 @@ Resources:
       SSESpecification:
         SSEEnabled: True
         SSEType: KMS
+
+  TokenDatabase:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'CreditCardTokenizerTable'
+      AttributeDefinitions: 
+        - AttributeName: "Hash_Key"
+          AttributeType: "S"
+        - AttributeName: "Account_Id"
+          AttributeType: "S"
+      KeySchema: 
+        - AttributeName: "Hash_Key"
+          KeyType: "HASH"
+        - AttributeName: "Account_Id"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: Yes
+        SSEType: 'KMS'
+
 Outputs:
   PaymentMethodApiURL:
     Description: API Gateway endpoint URL for CustomerOrderFunction
     Value: !Sub >-
       https://${PaymentMethodApi}.execute-api.${AWS::Region}.amazonaws.com/${stage}
+  
   CustomerOrderFunction:
     Description: Customer Order Lambda Function ARN
     Value: !GetAtt CustomerOrderFunction.Arn
+
   LambdaExecutionRole:
-    Description: Implicit IAM Role created for Hello World function
+    Description: Implicit IAM Role created for CustomerOrderFunction
     Value: !GetAtt LambdaExecutionRole.Arn
+
   UserPoolArn:
     Description: User Pool Arn for the cognito pool
     Value: !GetAtt UserPool.Arn
+
   UserPoolAppClientId:
     Description: User Pool App Client for your application
     Value: !Ref UserPoolAppClient
+
   Region:
     Description: Region
     Value: !Ref 'AWS::Region'
+
   AccountId:
     Description: AWS Account Id
     Value: !Ref 'AWS::AccountId'

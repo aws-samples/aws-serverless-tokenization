@@ -13,26 +13,7 @@ Resources:
       - python3.12
       LicenseInfo: Available under the MIT-0 license.
       RetentionPolicy: Delete
-  TokenDatabase:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: 'CreditCardTokenizerTable'
-      AttributeDefinitions: 
-        - AttributeName: "Hash_Key"
-          AttributeType: "S"
-        - AttributeName: "Account_Id"
-          AttributeType: "S"
-      KeySchema: 
-        - AttributeName: "Hash_Key"
-          KeyType: "HASH"
-        - AttributeName: "Account_Id"
-          KeyType: "RANGE"
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-      SSESpecification:
-        SSEEnabled: Yes
-        SSEType: 'KMS'
+      
 Outputs:
   LayerVersionArn:
     Description: ARN for the published Layer version
@@ -41,6 +22,3 @@ Outputs:
     Export:
       Name:
         Fn::Sub: 'TokenizeData'
-  DynamoDBArn:
-    Description: ARN for DynamoDB Table
-    Value: !GetAtt TokenDatabase.Arn
