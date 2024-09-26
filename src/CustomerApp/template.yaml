@@ -69,7 +69,7 @@ Resources:
   LAMSubNet:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Select 
+      AvailabilityZone: !Select
         - 0
         - 'Fn::GetAZs': !Ref 'AWS::Region'
       CidrBlock: 10.0.0.0/24
@@ -78,24 +78,21 @@ Resources:
   DynamoDBRouteTable:
     Type: 'AWS::EC2::RouteTable'
     Properties:
-      VpcId:  
-        Ref: LAMVPC
+      VpcId: !Ref LAMVPC
       Tags:
-      - Key: 'Name'
-        Value: 'DynamoDB RouteTable'
+        - Key: 'Name'
+          Value: 'DynamoDB RouteTable'
 
   mySubnetRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId:
-        Ref: LAMSubNet
-      RouteTableId:
-        Ref: DynamoDBRouteTable
+      SubnetId: !Ref LAMSubNet
+      RouteTableId: !Ref DynamoDBRouteTable
 
   DynamoDBEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
-      PolicyDocument: 
+      PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
@@ -116,29 +113,40 @@ Resources:
     Properties:
       GroupName: CustomerOrderSG
       GroupDescription: Allow the lambda access to AWS resources, but restrict inbound communications
-      VpcId:
-        Ref: LAMVPC
+      VpcId: !Ref LAMVPC
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 10.0.0.0/16
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/16
       SecurityGroupEgress:
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
 
   KMSEndPoint:
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
       PrivateDnsEnabled: True
       VpcEndpointType: 'Interface'
-      SecurityGroupIds: 
+      SecurityGroupIds:
         - !Ref CustomerOrderSG
       SubnetIds:
         - !Ref LAMSubNet
       ServiceName: !Sub com.amazonaws.${AWS::Region}.kms
+      VpcId: !Ref LAMVPC
+
+  XRayEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PrivateDnsEnabled: True
+      VpcEndpointType: 'Interface'
+      SecurityGroupIds:
+        - !Ref CustomerOrderSG
+      SubnetIds:
+        - !Ref LAMSubNet
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.xray
       VpcId: !Ref LAMVPC
 
   LambdaExecutionRole:
@@ -227,10 +235,9 @@ Resources:
       Name: PaymentMethodApiWAF
       Rules: []
 
-
   WAFWebACLAssociation:
     Type: 'AWS::WAFv2::WebACLAssociation'
-    DependsOn: 
+    DependsOn:
       - PaymentMethodApi
       - PaymentMethodApiStage
     Properties:
@@ -315,12 +322,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: 'CreditCardTokenizerTable'
-      AttributeDefinitions: 
+      AttributeDefinitions:
         - AttributeName: "Hash_Key"
           AttributeType: "S"
         - AttributeName: "Account_Id"
           AttributeType: "S"
-      KeySchema: 
+      KeySchema:
         - AttributeName: "Hash_Key"
           KeyType: "HASH"
         - AttributeName: "Account_Id"
@@ -337,7 +344,7 @@ Outputs:
     Description: API Gateway endpoint URL for CustomerOrderFunction
     Value: !Sub >-
       https://${PaymentMethodApi}.execute-api.${AWS::Region}.amazonaws.com/${stage}
-  
+
   CustomerOrderFunction:
     Description: Customer Order Lambda Function ARN
     Value: !GetAtt CustomerOrderFunction.Arn

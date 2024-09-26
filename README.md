@@ -28,10 +28,9 @@ This repository has the following directories:
  2. [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)
  3. [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)
  4. [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)
- 5. [AWS Cloud9](https://docs.aws.amazon.com/cloud9/latest/user-guide/welcome.html)
- 6. [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html)
- 7. [AWS VPC Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints.html)
- 8. [AWS X-Ray](https://docs.aws.amazon.com/xray/)
+ 5. [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html)
+ 6. [AWS VPC Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints.html)
+ 7. [AWS X-Ray](https://docs.aws.amazon.com/xray/)
  
  ## Pre-requisites 
  1. Access to the above mentioned AWS services within AWS Account
@@ -42,10 +41,18 @@ This repository has the following directories:
  ## Architecture Diagram
  ![Architecture](images/Lambda-Layer.png)
  
- ## Step 1: Environment Setup
-This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writing, running and debugging code on the cloud. Complete the Cloud9 Setup in AWS using this [guide](cloud9_setup/README.md)
- 
-*Note* - You will use [AWS Cloud9 console](https://docs.aws.amazon.com/cloud9/latest/user-guide/tour-ide.html#tour-ide-console) to run the commands mentioned in the next steps.
+ ## Step 1: Environment
+Before you start working with this repository, ensure that your development environment is properly set up. First, make sure you have your preferred IDE, such as Visual Studio Code, installed. 
+
+In this tutroal you will use a command line terminal to run the commands mentioned in the next steps.
+
+Verify that the AWS CLI is installed and configured correctly with your credentials. This will allow you to interact with AWS services seamlessly from your local environmentL
+
+ ```bash
+ aws sts get-caller-identity
+ ```
+
+*Note* - 
 
  ## Step 2: Create S3 Bucket
  We need [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/Welcome.html) bucket for [AWS Serverless Application Model(SAM)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) to package and deploy serverless resources. AWS SAM is an open source framework for building serverless applications on AWS to build and deploy SAM templates (template.yaml). Replace `unique-s3-bucket-name` with a unique value in the following code to create S3 bucket.
@@ -61,7 +68,7 @@ This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writ
 make_bucket: <unique-s3-bucket-name>
  ```
  
- ## Step 3: Initialize and Clone Git into Cloud9 Environment
+ ## Step 3: Initialize and Clone Git 
  
  Use the below code to initialize and clone this git repository
  
@@ -70,7 +77,7 @@ make_bucket: <unique-s3-bucket-name>
  git clone https://github.com/aws-samples/aws-serverless-tokenization.git
  ```
  
- Once the git repository is cloned, check the directories on the Cloud9 environment. The output will look like the following structure:
+ Once the git repository is cloned, check the directories. The output will look like the following structure:
  
  ![Git Cloned](images/git-clone-results.png)
  
@@ -143,12 +150,8 @@ cd ../../../aws-serverless-tokenization/src/tokenizer/
 
 **Step 5.2** Run the script to compile and install the dependent libraries in *dynamodb-client/python/* directory. For Lambda Function, we can include `--use container` in `sam build` command to achieve this but for Lambda Layer, we need to download the Lambda docker image to compile dependent libraries for Amazon Linux Image. [More details on this](https://github.com/pyca/cryptography/issues/3051?source=post_page-----f3e228470659----------------------)
 
-Make sure Docker is installed and running on your machine.
-Utilizing Buildx allows us to leverage the better performance and cost-efficiency of the AWS Graviton processor architecture. To ensure Docker Buildx is installed run the following command:
+Ensure Docker is installed and running on your machine by verifying with docker --version. Docker Buildx is included with Docker versions 19.03 and above, but you can check if it's installed by running docker buildx version. Utilizing Buildx enables better performance and cost-efficiency, especially when building for architectures like AWS Graviton.
 
-```bash
-docker buildx version
-```
 Run the following command to build an image for the tokenization Lambda layer:
 
 ```bash
@@ -391,7 +394,6 @@ The output will look like
 }
 ```
 Note the value of `IdToken` from the output for next steps.
-
 
 Now, we will invoke APIs to test the application. There are two APIs - 
 1. **order** - The first API i.e. *order* is to create the customer order, generate the token for credit card number (using Lambda Layer) and store encrypted credit card number in another DynamoDB table called `CreditCardTokenizerTable` (as specified in the Lambda Layer) and finally store the customer information along with the credit card token in DynamoDB table called `CustomerOrderTable`. 
