@@ -9,6 +9,9 @@ Tokenization is an alternative to encryption that helps to protect certain parts
 ## How? 
 
 We will use [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html) to create and control the encryption keys. We will then create [customer managed master  key](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#master_keys) which will be used by [DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html) client encryption library to encrypt the plain text. We will also use CloudFormation template to create DynamoDB Table and Lambda Layer which contains  encryption logic and dependent libraries. This Lambda Layer will be imported into Lambda Function which handles the request and response for our application. The application gets the sensitive data (for example, credit card information) from the end user, passes it to Lambda function that invokes the imported layer to exchange sensitive data with unique token. This token is stored in application database (DynamoDB) and the sensitive data is stored by Lambda Layer in separate database (DynamoDB) which can be managed by security team. When required, the encrypted data can be decrypted by providing the token stored in the application database.
+We additionally use AWS X-Ray to create tracing for the solution, which allows us to monitor and analyze the performance of our application, identify bottlenecks, and gain deeper insights into the interactions and dependencies within our distributed system. By integrating AWS X-Ray, we can trace requests as they travel through the various components of our application, ensuring better visibility and facilitating quicker debugging and optimization.
+
+Please note we use the DynamoDB Encryption Client, which has been renamed to the AWS Database Encryption SDK but is still supported by AWS.
 
 This repository has the following directories:
 - *src/encryption_keys* - This folder contains the CloudFormation template to create customer managed master key.
@@ -25,10 +28,9 @@ This repository has the following directories:
  2. [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)
  3. [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)
  4. [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)
- 5. [AWS Cloud9](https://docs.aws.amazon.com/cloud9/latest/user-guide/welcome.html)
- 6. [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html)
- 7. [AWS VPC Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints.html)
- 
+ 5. [AWS Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html)
+ 6. [AWS VPC Endpoints](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints.html)
+ 7. [AWS X-Ray](https://docs.aws.amazon.com/xray/)
  
  ## Pre-requisites 
  1. Access to the above mentioned AWS services within AWS Account
@@ -39,10 +41,18 @@ This repository has the following directories:
  ## Architecture Diagram
  ![Architecture](images/Lambda-Layer.png)
  
- ## Step 1: Environment Setup
-This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writing, running and debugging code on the cloud. Complete the Cloud9 Setup in AWS using this [guide](cloud9_setup/README.md)
- 
-*Note* - You will use [AWS Cloud9 console](https://docs.aws.amazon.com/cloud9/latest/user-guide/tour-ide.html#tour-ide-console) to run the commands mentioned in the next steps.
+ ## Step 1: Environment
+Before you start working with this repository, ensure that your development environment is properly set up. First, make sure you have your preferred IDE, such as Visual Studio Code, installed. 
+
+In this tutroal you will use a command line terminal to run the commands mentioned in the next steps.
+
+Verify that the AWS CLI is installed and configured correctly with your credentials. This will allow you to interact with AWS services seamlessly from your local environmentL
+
+ ```bash
+ aws sts get-caller-identity
+ ```
+
+*Note* - 
 
  ## Step 2: Create S3 Bucket
  We need [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/Welcome.html) bucket for [AWS Serverless Application Model(SAM)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) to package and deploy serverless resources. AWS SAM is an open source framework for building serverless applications on AWS to build and deploy SAM templates (template.yaml). Replace `unique-s3-bucket-name` with a unique value in the following code to create S3 bucket.
@@ -58,7 +68,7 @@ This module uses AWS Cloud9 as Integrated Development Environment (IDE) for writ
 make_bucket: <unique-s3-bucket-name>
  ```
  
- ## Step 3: Initialize and Clone Git into Cloud9 Environment
+ ## Step 3: Initialize and Clone Git 
  
  Use the below code to initialize and clone this git repository
  
@@ -67,7 +77,7 @@ make_bucket: <unique-s3-bucket-name>
  git clone https://github.com/aws-samples/aws-serverless-tokenization.git
  ```
  
- Once the git repository is cloned, check the directories on the Cloud9 environment. The output will look like the following structure:
+ Once the git repository is cloned, check the directories. The output will look like the following structure:
  
  ![Git Cloned](images/git-clone-results.png)
  
@@ -100,7 +110,9 @@ The output will look like
 
 **Step 4.4** Packaged.yaml (created in the above step) will be used to deploy the code and resources to AWS. Wait for the stack creation to complete. Note the name of the stack is `kms-stack`
 
-`sam deploy --template-file ./packaged.yaml --stack-name kms-stack --capabilities CAPABILITY_IAM`
+```bash
+sam deploy --template-file ./packaged.yaml --stack-name kms-stack --capabilities CAPABILITY_IAM
+```
 
 Once done, the output will look like
 
@@ -108,7 +120,9 @@ Once done, the output will look like
 
 **Step 4.5** Get the output variables of the stack 
 
-`aws cloudformation describe-stacks --stack-name kms-stack`
+```bash
+aws cloudformation describe-stacks --stack-name kms-stack
+```
 
 Once done, the output will look like
 
@@ -134,53 +148,37 @@ Here, in Step 4, the CloudFormation stack created customer managed KMS key and g
 cd ../../../aws-serverless-tokenization/src/tokenizer/
 ```
 
-**Step 5.2** Check the dependent libraries mentioned in `requirements.txt` file
+**Step 5.2** Run the script to compile and install the dependent libraries in *dynamodb-client/python/* directory. For Lambda Function, we can include `--use container` in `sam build` command to achieve this but for Lambda Layer, we need to download the Lambda docker image to compile dependent libraries for Amazon Linux Image. [More details on this](https://github.com/pyca/cryptography/issues/3051?source=post_page-----f3e228470659----------------------)
+
+Ensure Docker is installed and running on your machine by verifying with docker --version. Docker Buildx is included with Docker versions 19.03 and above, but you can check if it's installed by running docker buildx version. Utilizing Buildx enables better performance and cost-efficiency, especially when building for architectures like AWS Graviton.
+
+Run the following command to build an image for the tokenization Lambda layer:
 
 ```bash
-cat requirements.txt 
-```
-The output will look like 
-
-```bash
-dynamodb-encryption-sdk
-cryptography
+./build.sh
 ```
 
-**Step 5.3** Run the script to compile and install the dependent libraries in *dynamodb-client/python/* directory. For Lambda Function, we can include `--use container` in `sam build` command to achieve this but for Lambda Layer, we need to download the Lambda docker image to compile dependent libraries for Amazon Linux Image. [More details on this](https://github.com/pyca/cryptography/issues/3051?source=post_page-----f3e228470659----------------------)
+**Step 5.3** Build the SAM template (template.yaml)
 
 ```bash
-./get_AMI_packages_cryptography.sh
-```
-
-The output will look like 
-![layer-installed](images/get-lambda-layer-output.png)
-
-**Step 5.4** Build the SAM template (template.yaml)
-
-```bash
-sam build --use-container 
+sam build --use-container
 ```
 
 After the build is successful, the output will look like 
 
 ![build-success](images/build-success.png)
 
-**Step 5.5** Copy the python files `ddb_encrypt_item.py` and `hash_gen.py` to *dynamodb-client/python/*. This is required since Lambda Layer expects files to be in a specific directory to be used by Lambda function. [More details on this](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-path)
+**Step 5.4** Copy the python files `ddb_encrypt_item.py` and `hash_gen.py` to *dynamodb-client/python/*. This is required since Lambda Layer expects files to be in a specific directory to be used by Lambda function. [More details on this](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-path)
 
 `ddb_encrypt_item.py` – This file contains the logic to encrypt and decrypt the plain text and store encrypted information in DynamoDB table.
 
 `hash_gen.py` - This file contains the logic to create UUID tokens for strings which will be provided to the end application in exchange for sensitive data, for example, credit card. 
 
 ```bash
-cp ddb_encrypt_item.py dynamodb-client/python/
+cp ddb_encrypt_item.py hash_gen.py dynamodb-client/python/
 ```
 
-```bash
-cp hash_gen.py dynamodb-client/python/
-```
-
-
-**Step 5.6** Package the code and push to S3 Bucket. Replace `unique-s3-bucket-name` with the value identified in Step 2
+**Step 5.5** Package the code and push to S3 Bucket. Replace `unique-s3-bucket-name` with the value identified in Step 2
 
 ```bash
 sam package --s3-bucket <unique-s3-bucket-name> --output-template-file packaged.yaml
@@ -190,7 +188,7 @@ The output will look like
 
 ![package-success](images/tokenizer-stack-package.png)
 
-**Step 5.7** Similar to Step 4.4, create CloudFormation stack using the below code to create resources and deploy your code. Wait for the stack creation to complete. Note the name of the stack is `tokenizer-stack`
+**Step 5.6** Similar to Step 4.4, create CloudFormation stack using the below code to create resources and deploy your code. Wait for the stack creation to complete. Note the name of the stack is `tokenizer-stack`
 
 ```bash
 sam deploy --template-file ./packaged.yaml --stack-name tokenizer-stack --capabilities CAPABILITY_IAM
@@ -199,7 +197,7 @@ sam deploy --template-file ./packaged.yaml --stack-name tokenizer-stack --capabi
 The output will look like 
 ![tokenizer-stack](images/tokenizer-stack.png)
 
-**Step 5.8** Get the output variables of the stack
+**Step 5.7** Get the output variables of the stack
 
 ```bash
 aws cloudformation describe-stacks --stack-name tokenizer-stack
@@ -214,19 +212,13 @@ The output will look like
                     "ExportName": "TokenizeData", 
                     "OutputKey": "LayerVersionArn", 
                     "OutputValue": "***********"
-                }, 
-                {
-                    "Description": "ARN for DynamoDB Table", 
-                    "OutputKey": "DynamoDBArn", 
-                    "OutputValue": "***********/CreditCardTokenizerTable"
                 }
-
             ]
 ```
 
-Note the *OutputValue* of `LayerVersionArn` and `DynamoDBArn` from the output for later steps.
+Note the *OutputValue* of `LayerVersionArn` from the output for later steps.
 
-Here, in Step 5, the CloudFormation stack created DynamoDB table to store encrypted data as well as Lamda Layer for encrypting/decrypting the sensitive data and generating unique tokens for sensitive data.
+Here, in Step 5, the CloudFormation stack created a  Lamda Layer for encrypting/decrypting the sensitive data and generating unique tokens for sensitive data.
 
 ## Step 6: Create Serverless Application 
 
@@ -238,7 +230,7 @@ Let’s build the Serveless application which contains API gateway for API manag
  cd ../../../aws-serverless-tokenization/src/CustomerApp/
  ```
  
-**Step 6.2** Build SAM template. Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.9)
+**Step 6.2** Build SAM template. Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.7)
 
 ```bash
 sam build --use-container --parameter-overrides layerarn=<LayerVersionArn>
@@ -260,10 +252,10 @@ The output will look like
 
 **Step 6.4** Similar to Step 4.4, deploy code and resources to AWS using the packaged.yaml. Note the name of the stack is `app-stack`. 
 
-Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.9), `KMSKeyID` (Step 4.5)  and `DynamoDBArn` (Step 5.9)
+Replace the parameters with previously noted values for `LayerVersionArn` (Step 5.7), `KMSKeyID` (Step 4.5)
 
 ```bash
-sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSArn> dynamodbarn=<DynamoDBArn>
+sam deploy --template-file ./packaged.yaml --stack-name app-stack --capabilities CAPABILITY_IAM --parameter-overrides layerarn=<LayerVersionArn> kmsid=<KMSArn>
 ```
 ![app-stack](images/app-stack.png)
 
@@ -402,7 +394,6 @@ The output will look like
 }
 ```
 Note the value of `IdToken` from the output for next steps.
-
 
 Now, we will invoke APIs to test the application. There are two APIs - 
 1. **order** - The first API i.e. *order* is to create the customer order, generate the token for credit card number (using Lambda Layer) and store encrypted credit card number in another DynamoDB table called `CreditCardTokenizerTable` (as specified in the Lambda Layer) and finally store the customer information along with the credit card token in DynamoDB table called `CustomerOrderTable`. 
