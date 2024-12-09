@@ -44,7 +44,7 @@ This repository has the following directories:
  ## Step 1: Environment
 Before you start working with this repository, ensure that your development environment is properly set up. First, make sure you have your preferred IDE, such as Visual Studio Code, installed. 
 
-In this tutroal you will use a command line terminal to run the commands mentioned in the next steps.
+ You will use a command line terminal to run the commands mentioned in the next steps. You can use your laptop with IAM permissions setup to deploy the code on AWS Account. For setting up AWS CLI and IAM permissions for accessing AWS services from your laptop, refer to documentation [Authentication and access credentials for the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-authentication.html)
 
 Verify that the AWS CLI is installed and configured correctly with your credentials. This will allow you to interact with AWS services seamlessly from your local environmentL
 
