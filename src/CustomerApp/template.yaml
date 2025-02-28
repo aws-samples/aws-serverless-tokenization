@@ -98,11 +98,11 @@ Resources:
           - Effect: Allow
             Principal: "*"
             Action:
-              - "dynamodb:*"
-            Resource: "*"
-            Condition:
-              StringEquals:
-                aws:SourceVpc: !Ref LAMVPC
+              - "dynamodb:GetItem"
+              - "dynamodb:PutItem"
+            Resource:
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${encryptTableName}'
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${customerTableName}'
       RouteTableIds:
         - !Ref DynamoDBRouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
